@@ -6,7 +6,9 @@
 
 
 import sys
-sys.path.append('/home/alessio/ext_lib/trax/python')
+
+# @fixme temp before having proper python module installer
+sys.path.append('<ADD PATH TO TRAX>/trax/python')
 
 import trax
 
