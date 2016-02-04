@@ -8,7 +8,7 @@
 import sys
 
 # @fixme temp before having proper python module installer
-sys.path.append('<ADD PATH TO TRAX>/trax/python')
+sys.path.append('<PATH TO TRAX>/trax/python')
 
 import trax
 
@@ -21,8 +21,8 @@ class VOT(trax.TraxServer):
         Args: 
             options: TraX server options 
         """
-        
-        super(VOT, self).__init__(options, verbose=verbose)
+        self.options = options
+        super(VOT, self).__init__(self.options, verbose=verbose)
         
         
     def vot_initialize(self):
@@ -30,15 +30,17 @@ class VOT(trax.TraxServer):
         
         Returns:
             region:
-        """
-        
-        self.trax_server_setup()
-        
-        msgType, msgArgs = self.trax_server_wait( )
+        """        
+        self.trax_server_setup()           
+        msgType, msgArgs = self.trax_server_wait( )  
+        if msgType in [trax.TRAX_QUIT, trax.TRAX_ERROR]:
+            # socket connection will be closed by the destructor using the with statement
+            sys.exit(0)
+            
         assert(msgType, trax.TRAX_INITIALIZE)
         imgPath, regionStr = msgArgs[0], msgArgs[1]
         
-        region = vot_region_rect() if options.region == trax.TRAX_REGION_RECTANGLE else vot_region_poly()
+        region = vot_region_rect() if self.options.region == trax.TRAX_REGION_RECTANGLE else vot_region_poly()
         region.parseRegionStr(regionStr)
         
         self.trax_server_reply(regionStr)
@@ -66,13 +68,13 @@ class VOT(trax.TraxServer):
         if msgType != trax.TRAX_FRAME or len(msgArgs) != 1:
             return None
         
-        return msgArgs[0]
+        return msgArgs[0].strip('"')
         
     
 class vot_region(object):
     """ """
-    def __init__(self, regionType):
-        self.regionType = regionType
+    def __init__(self):
+        pass
         
     def parseRegionStr(self, regionStr):
         """ """
@@ -81,7 +83,8 @@ class vot_region(object):
 class vot_region_rect(vot_region):
     """ """
     def __init__(self):
-        super(vot_region_rect).__init__(trax.TRAX_REGION_RECTANGLE)
+        super(vot_region_rect)
+        self.regionType = trax.TRAX_REGION_RECTANGLE
         self.x, self.y, self.w, self.h = 0, 0, 0, 0
 
     def __str__(self):
@@ -89,7 +92,7 @@ class vot_region_rect(vot_region):
         
     def parseRegionStr(self, regionStr):
         """ """
-        self.x, self.y, self.w, self.h = map(float, regionStr.split(','))   
+        self.x, self.y, self.w, self.h = map(float, regionStr.strip('"').split(','))   
             
 class vot_region_poly(vot_region):
     """ @todo """

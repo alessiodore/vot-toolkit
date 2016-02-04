@@ -36,6 +36,7 @@
 
 // Uncomment line below if you want to use rectangles
 // #define VOT_RECTANGLE
+
 #include "vot.h"
 
 int main(int argc, char* argv[])
@@ -43,7 +44,7 @@ int main(int argc, char* argv[])
 
     // initialize handle object
     VOT vot;
-    
+
     // get region and first frame
     VOTRegion region = vot.region();
     string path = vot.frame();

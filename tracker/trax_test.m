@@ -52,11 +52,13 @@ arguments = [arguments, sprintf(' -t %d', timeout)];
 % Hint to tracker that it should use trax
 arguments = [arguments, ' -e "TRAX=1"'];
 
-% If we are running Matlab tracker on Windows, we have to use TCP/IP
+% If we are running Matlab tracker on Windows or Python we have to use TCP/IP
 % sockets
-if ispc && strcmpi(tracker.interpreter, 'matlab')
+if (ispc && strcmpi(tracker.interpreter, 'matlab')) || strcmpi(tracker.interpreter, 'python')
     arguments = [arguments, ' -X'];
 end
+
+
 
 if ispc
 command = sprintf('"%s" %s -- %s', trax_executable, ...
@@ -75,7 +77,6 @@ else
 end;
 
 try
-
     print_debug(['INFO: Executing "', command, '".']);
 
     % Save library paths
