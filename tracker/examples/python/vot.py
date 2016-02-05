@@ -4,12 +4,6 @@
 
 """
 
-
-import sys
-
-# @fixme temp before having proper python module installer
-sys.path.append('<PATH TO TRAX>/trax/python')
-
 import trax
 
 

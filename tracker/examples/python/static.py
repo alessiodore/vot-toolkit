@@ -3,20 +3,20 @@
 
 """
 
+import vot
 
-
-import vot as pyvot
-
-
-def static():
-    options = pyvot.trax.TraxServerOptions('static', 'v1', pyvot.trax.TRAX_REGION_RECTANGLE, pyvot.trax.TRAX_IMAGE_PATH)   
-    with pyvot.VOT(options, True) as vot:       
-        initRegion, initImgPath = vot.vot_initialize()            
+def static():  
+    options = vot.trax.TraxServerOptions('static', 'v1', vot.trax.TRAX_REGION_RECTANGLE, vot.trax.TRAX_IMAGE_PATH)   
+    with vot.VOT(options, True) as pyvot: 
+        #pyvot.trax_server_setup()           
+        #msgType, msgArgs = pyvot.trax_server_wait( )          
+        
+        initRegion, initImgPath = pyvot.vot_initialize()            
         while True:                
-            imgPath = vot.frame()
+            imgPath = pyvot.frame()
             if not imgPath:
                 break
-            vot.report(initRegion)
+            pyvot.report(initRegion)
             
     return 0       
 
