@@ -83,7 +83,7 @@ arguments = [arguments, ' -e "TRAX=1"'];
 
 % If we are running Matlab tracker on Windows, we have to use TCP/IP
 % sockets
-if ispc && strcmpi(tracker.interpreter, 'matlab')
+if (ispc && strcmpi(tracker.interpreter, 'matlab')) || strcmpi(tracker.interpreter, 'python')
     arguments = [arguments, ' -X'];
 end
 
