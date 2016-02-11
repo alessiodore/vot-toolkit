@@ -13,7 +13,7 @@ import vot
 import time
 
 def static():  
-    options = vot.trax.TraxServerOptions('static', 'v1', vot.trax.TRAX_REGION_RECTANGLE, vot.trax.TRAX_IMAGE_PATH)   
+    options = vot.trax.TraxServerOptions('WWX', 'v1', vot.trax.TRAX_REGION_RECTANGLE, vot.trax.TRAX_IMAGE_PATH)   
     with vot.VOT(options, True) as pyvot: 
         initRegion, initImgPath = pyvot.vot_initialize()            
         while True:                

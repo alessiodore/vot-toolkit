@@ -39,8 +39,10 @@ class VOT(trax.TraxServer):
             # socket connection will be closed by the destructor using the with statement
             sys.exit(0)
             
-        assert(msgType, trax.TRAX_INITIALIZE)
+        assert(msgType == trax.TRAX_INITIALIZE)
         imgPath, regionStr = msgArgs[0], msgArgs[1]
+        # strip quotes from imgPath
+        imgPath = imgPath[1:-1] if imgPath[0] == '"' and imgPath[-1] == '"' else imgPath 
         
         region = vot_region_rect() if self.options.region == trax.TRAX_REGION_RECTANGLE else vot_region_poly()
         region.parseRegionStr(regionStr)
@@ -71,8 +73,9 @@ class VOT(trax.TraxServer):
         
         if msgType != trax.TRAX_FRAME or len(msgArgs) != 1:
             return None
+        imgPath = msgArgs[0][1:-1] if msgArgs[0][0] == '"' and msgArgs[0][-1] == '"' else msgArgs[0] 
         
-        return msgArgs[0].strip('"')
+        return imgPath
         
     
 class vot_region(object):
@@ -86,10 +89,18 @@ class vot_region(object):
             
 class vot_region_rect(vot_region):
     """ Rectangle region """
-    def __init__(self):
+    def __init__(self, x=0, y=0, w=0, h=0):
+        """ Constructor
+        
+        Args:
+            x: top left x coord of the rectangle region
+            y: top left y coord of the rectangle region
+            w: width of the rectangle region
+            h: height of the rectangle region
+        """
         super(vot_region_rect)
         self.regionType = trax.TRAX_REGION_RECTANGLE
-        self.x, self.y, self.w, self.h = 0, 0, 0, 0
+        self.x, self.y, self.w, self.h = x, y, w, h
 
     def __str__(self):
         """ Create string from class to send to client """
