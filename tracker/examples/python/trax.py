@@ -32,12 +32,18 @@ TRAX_IMAGE_PATH, TRAX_IMAGE_URL, TRAX_IMAGE_DATA = range(3)
 
 class SocketServer(object):
     """ Base TraX socket server """
-    def __init__(self, port=None):
+    def __init__(self, port=None, verbose=False):
         """ Constructor
         
         Args: 
             port: if None use TRAX_DEFAULT_PORT
+            verbose: if True display log info
         """
+        if verbose:
+            log.basicConfig(format="%(levelname)s: %(message)s", level=log.DEBUG)
+        else:
+            log.basicConfig(format="%(levelname)s: %(message)s")        
+        
         self.port = TRAX_DEFAULT_PORT
         if port:
             self.port  = port
@@ -197,14 +203,9 @@ class TraxServer(SocketServer):
             options: TraX server options 
             port: port
             verbose: if True display log info
-        """   
-        if verbose:
-            log.basicConfig(format="%(levelname)s: %(message)s", level=log.DEBUG)
-        else:
-            log.basicConfig(format="%(levelname)s: %(message)s")
-            
+        """      
         self.options = options
-        super(TraxServer, self).__init__(port)
+        super(TraxServer, self).__init__(port, verbose)
 
     def trax_server_setup(self):
         """ Send hello msg with options to TraX client """  
