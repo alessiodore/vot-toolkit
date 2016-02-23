@@ -13,17 +13,14 @@ import vot
 import time
 
 def static():  
-    options = vot.trax.TraxServerOptions('static', 'v1', vot.trax.TRAX_REGION_RECTANGLE, vot.trax.TRAX_IMAGE_PATH)   
+    options = vot.trax.TraxServerOptions('static', 'v1', vot.trax.TRAX_REGION_RECTANGLE, vot.trax.TRAX_IMAGE_PATH) 
+                                        # ,vot.trax.TRAX_STREAM_SOCKET ) # to test socket   
     with vot.VOT(options, True) as pyvot: 
         initRegion, initImgPath = pyvot.vot_initialize()            
         while True:   
             imgPath = pyvot.frame()
             if not imgPath:
                 break
-            vot.vot_region_rect()
-
-
-                
             pyvot.report(initRegion)
             # @fixme: the evaluation breaks if it runs too fast
             time.sleep(0.01)
