@@ -64,7 +64,7 @@ class VOT(trax.TraxServer):
         Args:
             region: pass region as trax_region_rect or trax_region_poly     
         """
-        assert(isinstance(region, vot_region))
+        assert(isinstance(region, trax.trax_region))
         self.trax_server_reply(str(region))
         
     def frame(self):
