@@ -8,8 +8,9 @@
 @date 2016
 """
 
-import socket
+import os
 import sys
+import socket
 import logging as log
 
 TRAX_LOCALHOST = '127.0.0.1'
@@ -30,7 +31,94 @@ TRAX_ERROR, TRAX_HELLO, TRAX_INITIALIZE, TRAX_FRAME, TRAX_QUIT, TRAX_STATUS = ra
 TRAX_REGION_SPECIAL, TRAX_REGION_RECTANGLE, TRAX_REGION_POLYGON, TRAX_REGION_MASK = range(4)
 TRAX_IMAGE_PATH, TRAX_IMAGE_URL, TRAX_IMAGE_DATA = range(3)
 
-class SocketServer(object):
+# communication type
+FILE_COMM, SOCKET_COMM = range(2)
+
+class Server(object):
+    """ Base TraX server. Just interface, methods to implement in derived classes """
+    def __init__(self, comm_type=FILE_COMM, port=None, verbose=False):
+        """ Constructor
+        
+        Args: 
+            comm_type: type of communication between client and server. 
+                       Available: FILE_COMM (stdin and stdout pipes) and SOCKET_COMM (socket)
+            port: if None use TRAX_DEFAULT_PORT
+            verbose: if True display log info
+        """
+        if verbose:
+            log.basicConfig(format="%(levelname)s: %(message)s", level=log.DEBUG)
+        else:
+            log.basicConfig(format="%(levelname)s: %(message)s")      
+        
+        # communication functions for socket and pipe    
+        if comm_type == FILE_COMM:
+            def write_to_stdout(msg):
+                sys.stdout.write(msg)
+                sys.stdout.flush()
+            self._send_msg = write_to_stdout
+            self._rec_msg = sys.stdin.readline
+        elif comm_type == SOCKET_COMM:
+            self._send_message = self.socket.send
+            self._rec_msg = self.socket.recv(1024) 
+        else:
+            log.error('Unknow communication type. Exit!')
+            sys.exit(-1)
+        
+        
+    def __enter__(self):
+        """ To support instantiation with 'with' statement """
+        return self
+
+    def __exit__(self,*args,**kwargs):
+        """ Destructor used by 'with' statement. """     
+        return        
+
+    def _write_message(self, msgType, arguments, properties):
+        """ Create the message string and send it
+        
+        Args: 
+            msgType: message type identifier
+            arguments: message arguments  
+            properties: optional arguments. Format: "key:value"
+        """
+        return
+
+    def _read_message(self):
+        """ Read message and parse it
+         
+        Returns:  
+            msgArgs: list of message arguments
+        """       
+
+    def _fixArgs(self, msgArgs):
+        """ Parse msgArgs list to merge string with spaces withing quotes 
+            IMPORTANT: It assumes that arguments with white space are enclosed in double quotes
+        """
+        # remove the msg type str
+        msgArgs = msgArgs[1:] if len(msgArgs) > 1 else []
+
+        if len(msgArgs) == 0:
+            return msgArgs
+
+        # parse msgArgs list to merge string with spaces within quotes
+        fixedMsgArgs = []
+        skipToIdx = 0
+        for idx, msgArg in enumerate(msgArgs):
+            if skipToIdx > idx:
+                continue
+            if msgArg[0] == '"' and msgArg[-1] != '"':
+                for i in range(idx+1,len(msgArgs)):
+                    msgArg+= ' ' + msgArgs[i]
+                    if msgArg[-1] == '"':
+                        skipToIdx = i+1
+                        fixedMsgArgs.append(msgArg)
+                        break
+            else:
+                fixedMsgArgs.append(msgArg)  
+        return fixedMsgArgs
+
+        
+class SocketServer(Server):
     """ Base TraX socket server """
     def __init__(self, port=None, verbose=False):
         """ Constructor
@@ -39,10 +127,7 @@ class SocketServer(object):
             port: if None use TRAX_DEFAULT_PORT
             verbose: if True display log info
         """
-        if verbose:
-            log.basicConfig(format="%(levelname)s: %(message)s", level=log.DEBUG)
-        else:
-            log.basicConfig(format="%(levelname)s: %(message)s")        
+  
         
         self.port = TRAX_DEFAULT_PORT
         if port:
@@ -57,7 +142,8 @@ class SocketServer(object):
         except socket.error as msg:
             log.error('Connection failed. Error Code : {}\nMessage: {}'.format(str(msg[0]), msg[1]))          
             sys.exit()    
-
+        
+        super(SocketServer).__init__(SOCKET_COMM, port, verbose)
         # to store single messages if more than one read from socket
         self.receivedMsgs = []  
 
@@ -117,7 +203,6 @@ class SocketServer(object):
         self.socket.send(msg)
         return
 
-
     def _read_message(self):
         """ Read socket message and parse it
          
@@ -165,38 +250,132 @@ class SocketServer(object):
 
         return msgType, msgArgs
 
-    def _fixArgs(self, msgArgs):
-        """ Parse msgArgs list to merge string with spaces withing quotes 
-            IMPORTANT: It assumes that arguments with white space are enclosed in double quotes
+class StreamServer(Server):
+    """ Base TraX stdout stdin server
+    """
+    def __init__(self, verbose=False):
+        """ Constructor
+        
+        Args: 
+            port: if None use TRAX_DEFAULT_PORT
+            verbose: if True display log info
         """
-        # remove the msg type str
-        msgArgs = msgArgs[1:] if len(msgArgs) > 1 else []
-
-        if len(msgArgs) == 0:
-            return msgArgs
-
-        # parse msgArgs list to merge string with spaces within quotes
-        fixedMsgArgs = []
-        skipToIdx = 0
-        for idx, msgArg in enumerate(msgArgs):
-            if skipToIdx > idx:
-                continue
-            if msgArg[0] == '"' and msgArg[-1] != '"':
-                for i in range(idx+1,len(msgArgs)):
-                    msgArg+= ' ' + msgArgs[i]
-                    if msgArg[-1] == '"':
-                        skipToIdx = i+1
-                        fixedMsgArgs.append(msgArg)
-                        break
-            else:
-                fixedMsgArgs.append(msgArg)
+        if verbose:
+            log.basicConfig(format="%(levelname)s: %(message)s", level=log.DEBUG)
+        else:
+            log.basicConfig(format="%(levelname)s: %(message)s")    
                 
-        return fixedMsgArgs
+        # to store single messages if more than one read from socket
+        self.receivedMsgs = []  
 
-class TraxServer(SocketServer):
+    def __enter__(self):
+        """ To support instantiation with 'with' statement """
+        return self
+
+    def __exit__(self,*args,**kwargs):
+        """ Destructor used by 'with' statement. """ 
+        sys.stdout.close()
+        return
+
+    def _write_message(self, msgType, arguments, properties):
+        """ Create the message string and send it
+        
+        Args: 
+            msgType: message type identifier
+            arguments: message arguments  
+            properties: optional arguments. Format: "key:value"
+        """
+        assert(isinstance(arguments, list))
+        assert(isinstance(properties, list) or properties is None)
+        
+        msg = '{}'.format(TRAX_PREFIX)
+        if msgType == TRAX_HELLO:        
+            msg += TRAX_HELLO_STR
+        elif msgType == TRAX_STATUS:        
+            msg += TRAX_STATUS_STR
+        elif msgType == TRAX_QUIT:        
+            msg += TRAX_QUIT_STR      
+        
+        # arguments
+        for arg in arguments:
+            msg += ' '
+            if isinstance(arg,str) and ' ' in arg:
+                msg += '\"' + arg + '\"' 
+            else:
+                msg += arg      
+                
+        # optional arguments
+        if not properties: properties = [] 
+        for prop in properties:
+            msg += ' '
+            if msg[-1:] != ' ':
+                msg += ' '
+            msg += prop
+        # end of msg    
+        msg += '\n'
+        
+        sys.stdout.write(msg)
+        sys.stdout.flush()       
+      
+        return
+
+    def _read_message(self):
+        """ Read socket message and parse it
+         
+        Returns:  
+            msgArgs: list of message arguments
+        """  
+        if not len(self.receivedMsgs) or (not TRAX_QUIT_STR in self.receivedMsgs[0] and not '\n' in self.receivedMsgs[0]):
+            msg = '' if not len(self.receivedMsgs) else self.receivedMsgs[0]     
+              
+            while True:                   
+                msg += sys.stdin.readline() 
+                if msg is None or not isinstance(msg,str):                  
+                    return None, None
+                if len(msg) == 0:
+                    log.info('Empty msg')                     
+                    return None, None
+                else:
+                    if not '\n' in msg and not TRAX_QUIT_STR in msg:
+                        log.info('Incomplete msg: {}'.format(msg))
+                        continue
+                    tmpMsgs = [m for m in msg.split('\n') if len(m) > 0]
+                    msg = tmpMsgs[0]
+                    self.receivedMsgs += tmpMsgs[1:]
+                    break
+        else:
+            msg = self.receivedMsgs[0]
+            self.receivedMsgs = self.receivedMsgs[1:]                 
+
+           
+        with open('/home/alessio/Desktop/test1.txt','wb') as f:
+            f.write('hello3 {}'.format(msg))         
+            
+        if msg[:len(TRAX_PREFIX)] != TRAX_PREFIX:
+            log.warning('Message is not in TraX format: {}'.format(msg))
+            return None, None
+        
+        msgArgs = [m for m in msg[len(TRAX_PREFIX):].split(' ') if len(m) > 0]
+        
+        if not msgArgs[0] in [TRAX_INITIALIZE_STR, TRAX_FRAME_STR, TRAX_QUIT_STR]:
+            log.warning('The message is not recognized: {}'.format(msg))
+            return None, None
+        
+        if msgArgs[0] == TRAX_INITIALIZE_STR: msgType = TRAX_INITIALIZE
+        elif msgArgs[0] == TRAX_FRAME_STR: msgType = TRAX_FRAME
+        elif msgArgs[0] == TRAX_QUIT_STR: msgType = TRAX_QUIT
+        else:
+            log.warning('The message is not recognized: {}'.format(msg))
+            return None, None            
+        msgArgs = self._fixArgs(msgArgs)
+
+        return msgType, msgArgs
+
+
+class TraxServer(StreamServer):
     """ Python TraX Server 
     """
-    def __init__(self, options, port = None, verbose = False):
+    def __init__(self, options, port=None, verbose = False):
         """ Constructor
         
         Args: 
@@ -205,8 +384,14 @@ class TraxServer(SocketServer):
             verbose: if True display log info
         """      
         self.options = options
-        super(TraxServer, self).__init__(port, verbose)
+        # socket server
+        #super(TraxServer, self).__init__(port, verbose)
 
+        # stream server no port
+        super(TraxServer, self).__init__(verbose)
+        
+        
+        
     def trax_server_setup(self):
         """ Send hello msg with options to TraX client """  
         properties = [self.options.getAttrStr(prop) for prop in self.options.__dict__.keys()]              
@@ -285,3 +470,47 @@ class TraxServerOptions(object):
             String with attribute to send to the client. Format: "trax.<attr name>=<attr val>"
         """
         return '"trax.{}={}"'.format(attrName, getattr(self, attrName))
+
+
+class trax_region(object):
+    """ Base class for vot region """
+    def __init__(self):
+        pass
+        
+    def parseRegionStr(self, regionStr):
+        """ In derived classes implement method to parse region string """
+        return
+            
+class trax_region_rect(trax_region):
+    """ Rectangle region """
+    def __init__(self, x=0, y=0, w=0, h=0):
+        """ Constructor
+        
+        Args:
+            x: top left x coord of the rectangle region
+            y: top left y coord of the rectangle region
+            w: width of the rectangle region
+            h: height of the rectangle region
+        """
+        super(vot_region_rect)
+        self.regionType = trax.TRAX_REGION_RECTANGLE
+        self.x, self.y, self.w, self.h = x, y, w, h
+
+    def __str__(self):
+        """ Create string from class to send to client """
+        return '{},{},{},{}'.format(self.x, self.y, self.w, self.h)
+        
+    def parseRegionStr(self, regionStr):
+        """ Parse region string to get x, y, w, h """
+        self.x, self.y, self.w, self.h = map(float, regionStr.strip('"').split(','))   
+            
+class trax_region_poly(trax_region):
+    """ @todo """
+    def __init__(self):
+        super(vot_region_rect).__init__(trax.TRAX_REGION_POLYGON)
+        self.count = 0
+        self.points = list()
+        
+    def parseRegionStr(self, regionStr):
+        """ """
+        pass

@@ -9,6 +9,8 @@
 
 """
 
+import sys
+
 import trax
 
 
@@ -32,9 +34,13 @@ class VOT(trax.TraxServer):
         Returns:
             region: region as vot_region_rect or vot_region_poly object
             imgPath: path of the first image
-        """        
-        self.trax_server_setup()           
-        msgType, msgArgs = self.trax_server_wait( )  
+        """          
+        self.trax_server_setup()    
+        import time
+        time.sleep(0.5)
+        msgType, msgArgs = self.trax_server_wait( )       
+        
+        
         if msgType in [trax.TRAX_QUIT, trax.TRAX_ERROR]:
             # socket connection will be closed by the destructor using the with statement
             sys.exit(0)
