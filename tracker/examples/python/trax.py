@@ -381,12 +381,21 @@ class trax_region_rect(trax_region):
         self.x, self.y, self.w, self.h = map(float, regionStr.strip('"').split(','))   
             
 class trax_region_poly(trax_region):
-    """ Polygon region """
-    def __init__(self):
+    """ Polygon region 
+    """
+    def __init__(self, points):
+        """
+        Constructor
+    
+        Args: points list of points coordinates as tuples [(x1,y1), (x2,y2),...,(xN,yN)]  
+        """
         super(trax_region_poly, self).__init__()
-        self.count = 0
-        self.points = list()
-
+        assert(isinstance(points, list))
+        # do not allow empty list
+        assert(reduce(lambda x,y: x and y, [isinstance(p,tuple) for p in points], False))
+        self.count = len(points) 
+        self.points = points
+        
     def __str__(self):
         """ Create string from class to send to client """
         return ','.join(['{},{}'.format(p[0],p[1]) for p in self.points])
