@@ -255,16 +255,11 @@ class TraxServer(FilesServer, SocketServer):
         """      
         self.options = options
         
-        # files stream server
-        if options.comm_type == TRAX_STREAM_FILES:
-            super(TraxServer, self).__init__(options.comm_type, None, verbose)       
-        # socket server
-        elif options.comm_type == TRAX_STREAM_SOCKET:
-            port = port if port else TRAX_DEFAULT_PORT
-            super(TraxServer, self).__init__(options.comm_type, port, verbose)
-        else:
-            log.error('Unknown communication type. Exit!')
-            sys.exit()
+        if options.comm_type == TRAX_STREAM_SOCKET:
+            port = port if port else TRAX_DEFAULT_PORT        
+            
+        super(TraxServer, self).__init__(options.comm_type, port, verbose)       
+
 
     def trax_server_setup(self):
         """ Send hello msg with options to TraX client """  
@@ -358,7 +353,8 @@ class trax_region(object):
         return
             
 class trax_region_rect(trax_region):
-    """ Rectangle region """
+    """ Rectangle region 
+    """
     def __init__(self, x=0, y=0, w=0, h=0):
         """ Constructor
         
@@ -395,7 +391,7 @@ class trax_region_poly(trax_region):
         assert(reduce(lambda x,y: x and y, [isinstance(p,tuple) for p in points], False))
         self.count = len(points) 
         self.points = points
-        
+
     def __str__(self):
         """ Create string from class to send to client """
         return ','.join(['{},{}'.format(p[0],p[1]) for p in self.points])
@@ -405,6 +401,5 @@ class trax_region_poly(trax_region):
         pointsFlat = map(float, regionStr.strip('"').split(','))
         assert(len(pointsFlat)%2==0)
         self.count = pointsFlat/2
-        for i in xrange(0,len(pointsFlat),2):
-            self.points.append((pointsFlat[i],pointsFlat[i+1]))
+        self.points = [(pointsFlat[i],pointsFlat[i+1]) for i in xrange(0,len(pointsFlat),2)]
             
